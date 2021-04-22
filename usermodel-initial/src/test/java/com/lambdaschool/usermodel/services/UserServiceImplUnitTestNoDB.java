@@ -1,6 +1,7 @@
 package com.lambdaschool.usermodel.services;
 
 import com.lambdaschool.usermodel.UserModelApplicationTesting;
+import com.lambdaschool.usermodel.exceptions.ResourceNotFoundException;
 import com.lambdaschool.usermodel.models.Role;
 import com.lambdaschool.usermodel.models.User;
 import com.lambdaschool.usermodel.models.UserRoles;
@@ -10,6 +11,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,8 +20,10 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = UserModelApplicationTesting.class,
@@ -137,38 +141,99 @@ public class UserServiceImplUnitTestNoDB
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() throws Exception
+    {
     }
 
     @Test
-    public void findUserById() {
+    public void findUserById()
+    {
+        Mockito.when(userRepository.findById(1L))
+                .thenReturn(Optional.of(userList.get(0)));
+        assertEquals("admin", userService.findUserById(1L).getUsername());
+    }
+
+    @Test(expected = ResourceNotFoundException.class)
+    public void findUserByIdNotFound()
+    {
+        Mockito.when(userRepository.findById(1337L))
+                .thenReturn(Optional.empty());
+        assertEquals("admin", userService.findUserById(1337L).getUsername());
     }
 
     @Test
-    public void findByNameContaining() {
+    public void findByNameContaining()
+    {
+        Mockito.when(userRepository.findByUsernameContainingIgnoreCase("a"))
+                .thenReturn(userList);
+        assertEquals(5, userService.findByNameContaining("a").size());
     }
 
     @Test
-    public void findAll() {
+    public void findByNameContainingNotFound()
+    {
+        Mockito.when(userRepository.findByUsernameContainingIgnoreCase("pwn"))
+                .thenReturn(userList);
+        assertEquals(5, userService.findByNameContaining("pwn").size());
     }
 
     @Test
-    public void delete() {
+    public void findAll()
+    {
+        Mockito.when(userRepository.findAll())
+                .thenReturn(userList);
+        assertEquals(5, userService.findAll().size());
     }
 
     @Test
-    public void findByName() {
+    public void delete()
+    {
+        Mockito.when(userRepository.findById(1L))
+                .thenReturn(Optional.of(userList.get(0)));
+
+        Mockito.doNothing()
+                .when(userRepository)
+                .deleteById(1L);
+
+        userService.delete(1L);
+        assertEquals(5, userList.size());
     }
 
     @Test
-    public void save() {
+    public void findByName()
+    {
+        Mockito.when(userRepository.findByUsername("admin"))
+                .thenReturn(userList.get(0));
+        assertEquals("admin",
+                userService.findByName("admin").getUsername());
     }
 
     @Test
-    public void update() {
+    public void save()
+    {
+        User u6 = new User("RandomCraig",
+                "RandomPass",
+                "RandomCraig@Randomemail.com");
+        Role r4 = new Role("admin");
+        u6.getRoles().add(new UserRoles(u6, r4));
+
+        Mockito.when(userRepository.save(any(User.class)))
+                .thenReturn(u6);
+
+        User addUser = userService.save(u6);
+        assertNotNull(addUser);
+        assertEquals(u6.getUsername(), addUser.getUsername());
     }
 
     @Test
-    public void deleteAll() {
+    public void update()
+    {
+
+    }
+
+    @Test
+    public void deleteAll()
+    {
+
     }
 }
